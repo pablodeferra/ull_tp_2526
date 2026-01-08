@@ -56,7 +56,7 @@ We measured the wall-clock time as a function of particle count for three config
 - Small particle counts (N): Parallel runs can be slower than serial due to overhead.
 - Moderate to large N (N ≳ 100): Parallelization provides a speedup as expected.
 
-> **Note** This was performed by using an Intel Core i7-12700H (14 cores / 20 threads)
+> **Note** This was performed on an Intel Core i7-12700H (14 cores / 20 threads)
 
 
 ## Build and run
