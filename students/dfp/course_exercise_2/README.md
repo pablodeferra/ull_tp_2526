@@ -33,8 +33,8 @@ These timings were measured on a single node using `setup_disk.dat` (500 particl
 | Mode | Command / runtime mode | Wall time |
 |------|------------------------|-----------:|
 | Serial | `./nbody_bh_serial` | 9m 7s
-| OpenMP (14 threads) | `OMP_NUM_THREADS=14 ./nbody_bh_omp` | 1m 13s
-| MPI (14 ranks) | `mpirun -np 14 ./nbody_bh_mpi` (OMP_NUM_THREADS=1) | 2m 36s
+| OpenMP (14 threads) | `OMP_NUM_THREADS=14 ./nbody_bh_omp` | 1m 29s
+| MPI (14 ranks) | `mpirun -np 14 ./nbody_bh_mpi` (OMP_NUM_THREADS=1) | 1m 31s
 
 - On a single shared-memory node, a pure OpenMP run often outperforms a pure MPI run because it avoids MPI communication overhead. On a multi-node cluster with a fast interconnect, the MPI variant may scale better.
 
@@ -46,7 +46,7 @@ Timings measured on the same node using `setup_random.dat`:
 |------|------------------------|-----------:|
 | Serial | `./nbody_bh_serial` | 6m 17s
 | OpenMP (14 threads) | `OMP_NUM_THREADS=14 ./nbody_bh_omp` | 1m 30s
-| MPI (14 ranks) | `mpirun -np 14 ./nbody_bh_mpi` (OMP_NUM_THREADS=1) | 2m 06s
+| MPI (14 ranks) | `mpirun -np 14 ./nbody_bh_mpi` (OMP_NUM_THREADS=1) | 1m 14s
 
 ## Build and run
 

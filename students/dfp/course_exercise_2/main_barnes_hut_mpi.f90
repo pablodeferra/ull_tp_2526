@@ -62,9 +62,12 @@ program main_barnes_hut_mpi
 	my_start = displs(my_rank+1)
 	my_end = my_start + my_n - 1
 
+	! Initialize Barnes–Hut node pool once (conservative size ~8*N)
+	call bhm_pool_init(8*n + 8)
+
 	! initial accelerations for my block and half-step velocities
 	! build tree and initial accelerations on my block
-	allocate(head)
+	call bhm_pool_reset(head)
 	call bhm_compute_ranges(head, r)
 	head%type = 0
 	call bhm_nullify_pointers(head)
@@ -76,8 +79,7 @@ program main_barnes_hut_mpi
 	call bhm_compute_masses(head, m, r)
 	a(my_start:my_end,:) = 0.0_dp
 	call bhm_compute_forces_range(head, m, r, a, theta, my_start, my_end)
-	call bhm_remove_tree(head)
-	deallocate(head)
+	! No dynamic allocation for head
 	v(my_start:my_end,:) = v(my_start:my_end,:) + a(my_start:my_end,:) * (dt/2.0_dp)
 
 	! initialize simulation variables
@@ -106,7 +108,7 @@ program main_barnes_hut_mpi
 	   call mpi_allgatherv(r(my_start,3), my_n, mpi_double_precision, r(1,3), counts, displs0, &
 		   mpi_double_precision, mpi_comm_world, ierr)
 		! compute accelerations for my block and full-step velocities
-		allocate(head)
+		call bhm_pool_reset(head)
 		call bhm_compute_ranges(head, r)
 		head%type = 0
 		call bhm_nullify_pointers(head)
@@ -118,8 +120,7 @@ program main_barnes_hut_mpi
 		call bhm_compute_masses(head, m, r)
 		a(my_start:my_end,:) = 0.0_dp
 		call bhm_compute_forces_range(head, m, r, a, theta, my_start, my_end)
-		call bhm_remove_tree(head)
-		deallocate(head)
+		! Pool-based head
 		v(my_start:my_end,:) = v(my_start:my_end,:) + a(my_start:my_end,:) * dt
 
 		! update time and output

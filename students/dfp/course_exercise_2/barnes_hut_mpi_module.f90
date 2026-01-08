@@ -8,6 +8,7 @@ module bh_mpi_module
   public :: bhm_nullify_pointers, bhm_belongs, bhm_compute_range
   public :: bhm_remove_empty_leaves, bhm_remove_tree, bhm_compute_masses
   public :: bhm_compute_forces_range
+  public :: bhm_pool_init, bhm_pool_reset
 
   type :: range
     real(kind=dp), dimension(3) :: min, max
@@ -27,7 +28,67 @@ module bh_mpi_module
     type(cptr), dimension(2,2,2) :: subcell
   end type cell
 
+  ! Preallocated pool for cells to avoid frequent allocate/deallocate
+  type(cell), target, allocatable, save :: bhm_node_pool(:)
+  integer, save :: bhm_pool_size = 0
+  integer, save :: bhm_node_count = 0
+
 contains
+
+  subroutine bhm_pool_init(max_nodes)
+    integer, intent(in) :: max_nodes
+  integer :: i
+  type(cell), pointer :: p
+    if (allocated(bhm_node_pool)) deallocate(bhm_node_pool)
+    allocate(bhm_node_pool(max_nodes))
+    bhm_pool_size = max_nodes
+    bhm_node_count = 0
+    ! Ensure all child pointers are nullified initially
+    do i = 1, max_nodes
+      p => bhm_node_pool(i)
+      call bhm_nullify_pointers(p)
+      bhm_node_pool(i)%type = 0
+      bhm_node_pool(i)%pos = 0
+      bhm_node_pool(i)%mass = 0.0_dp
+      bhm_node_pool(i)%part = 0.0_dp
+      bhm_node_pool(i)%c_o_m = 0.0_dp
+      bhm_node_pool(i)%range%min = 0.0_dp
+      bhm_node_pool(i)%range%max = 0.0_dp
+    end do
+  end subroutine bhm_pool_init
+
+  subroutine bhm_init_cell(node)
+    type(cell), pointer :: node
+    node%type = 0
+    node%pos = 0
+    node%mass = 0.0_dp
+    node%part = 0.0_dp
+    node%c_o_m = 0.0_dp
+    node%range%min = 0.0_dp
+    node%range%max = 0.0_dp
+    call bhm_nullify_pointers(node)
+  end subroutine bhm_init_cell
+
+  subroutine bhm_pool_reset(root)
+    type(cell), pointer :: root
+    ! Start from first node in the pool as root
+    if (.not. allocated(bhm_node_pool)) then
+      stop 'bhm_pool_reset called before bhm_pool_init'
+    end if
+    bhm_node_count = 1
+    root => bhm_node_pool(1)
+    call bhm_init_cell(root)
+  end subroutine bhm_pool_reset
+
+  subroutine bhm_new_node(node)
+    type(cell), pointer :: node
+    if (bhm_node_count >= bhm_pool_size) then
+      stop 'Barnes-Hut node pool exhausted. Increase pool size (bhm_pool_init)'
+    end if
+    bhm_node_count = bhm_node_count + 1
+    node => bhm_node_pool(bhm_node_count)
+    call bhm_init_cell(node)
+  end subroutine bhm_new_node
 
   subroutine bhm_compute_ranges(goal, r)
     type(cell), pointer :: goal
@@ -88,20 +149,24 @@ contains
     type(cell), pointer :: goal
     real(kind=dp), dimension(3) :: part
     integer :: i,j,k
+    logical :: placed
     integer, dimension(3) :: octant
     part = goal%part
     goal%type = 2
+    placed = .false.
     do i = 1,2
       do j = 1,2
         do k = 1,2
           octant = (/ i, j, k /)
-          allocate(goal%subcell(i,j,k)%ptr)
+          call bhm_new_node(goal%subcell(i,j,k)%ptr)
           goal%subcell(i,j,k)%ptr%range%min = bhm_compute_range(0, goal, octant)
           goal%subcell(i,j,k)%ptr%range%max = bhm_compute_range(1, goal, octant)
-          if (bhm_belongs(part, goal%subcell(i,j,k)%ptr)) then
+          ! Assign the existing particle to exactly one child to avoid duplication
+          if ((.not. placed) .and. bhm_belongs(part, goal%subcell(i,j,k)%ptr)) then
             goal%subcell(i,j,k)%ptr%part = part
             goal%subcell(i,j,k)%ptr%type = 1
             goal%subcell(i,j,k)%ptr%pos = goal%pos
+            placed = .true.
           else
             goal%subcell(i,j,k)%ptr%type = 0
           end if
@@ -162,7 +227,7 @@ contains
           do k = 1,2
             call bhm_remove_empty_leaves(goal%subcell(i,j,k)%ptr)
             if (goal%subcell(i,j,k)%ptr%type == 0) then
-              deallocate(goal%subcell(i,j,k)%ptr)
+              nullify(goal%subcell(i,j,k)%ptr)
             end if
           end do
         end do
@@ -178,7 +243,7 @@ contains
         do k = 1,2
           if (associated(goal%subcell(i,j,k)%ptr)) then
             call bhm_remove_tree(goal%subcell(i,j,k)%ptr)
-            deallocate(goal%subcell(i,j,k)%ptr)
+            nullify(goal%subcell(i,j,k)%ptr)
           end if
         end do
       end do

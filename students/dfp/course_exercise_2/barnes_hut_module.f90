@@ -125,9 +125,11 @@ contains
 		type(cell), pointer :: goal
 		type(point3d) :: part
 		integer :: i, j, k
+		logical :: placed
 		integer, dimension(3) :: octant
 		part = goal%part
 		goal%type = 2
+		placed = .false.
 		do i = 1, 2
 			do j = 1, 2
 				do k = 1, 2
@@ -135,10 +137,12 @@ contains
 					allocate(goal%subcell(i,j,k)%ptr)
 					goal%subcell(i,j,k)%ptr%range%min = bh_compute_range(0, goal, octant)
 					goal%subcell(i,j,k)%ptr%range%max = bh_compute_range(1, goal, octant)
-					if (bh_belongs(part, goal%subcell(i,j,k)%ptr)) then
+					! Assign the existing particle to exactly one child to avoid duplication
+					if (.not. placed .and. bh_belongs(part, goal%subcell(i,j,k)%ptr)) then
 						goal%subcell(i,j,k)%ptr%part = part
 						goal%subcell(i,j,k)%ptr%type = 1
 						goal%subcell(i,j,k)%ptr%pos = goal%pos
+						placed = .true.
 					else
 						goal%subcell(i,j,k)%ptr%type = 0
 					end if
