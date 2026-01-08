@@ -36,7 +36,6 @@ These timings were measured on a single node using `setup_disk.dat` (500 particl
 | OpenMP (14 threads) | `OMP_NUM_THREADS=14 ./nbody_bh_omp` | 1m 29s
 | MPI (14 ranks) | `mpirun -np 14 ./nbody_bh_mpi` (OMP_NUM_THREADS=1) | 1m 31s
 
-- On a single shared-memory node, a pure OpenMP run often outperforms a pure MPI run because it avoids MPI communication overhead. On a multi-node cluster with a fast interconnect, the MPI variant may scale better.
 
 ## Measured performance (random setup, n=500)
 
