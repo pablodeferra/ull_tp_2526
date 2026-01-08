@@ -33,7 +33,7 @@ These timings were measured on a single node using `setup_disk.dat` (500 particl
 | Mode | Command / runtime mode | Wall time |
 |------|------------------------|-----------:|
 | Serial | `./nbody_bh_serial` | 9m 7s
-| OpenMP (14 threads) | `OMP_NUM_THREADS=14 ./nbody_bh_omp` | 1m 29s
+| OpenMP (14 threads) | `OMP_NUM_THREADS=14 ./nbody_bh_omp` | 2m 0s
 | MPI (14 ranks) | `mpirun -np 14 ./nbody_bh_mpi` (OMP_NUM_THREADS=1) | 1m 31s
 
 
@@ -46,6 +46,18 @@ Timings measured on the same node using `setup_random.dat`:
 | Serial | `./nbody_bh_serial` | 6m 17s
 | OpenMP (14 threads) | `OMP_NUM_THREADS=14 ./nbody_bh_omp` | 1m 30s
 | MPI (14 ranks) | `mpirun -np 14 ./nbody_bh_mpi` (OMP_NUM_THREADS=1) | 1m 14s
+
+## Scaling
+
+We measured the wall-clock time as a function of particle count for three configurations: serial, OpenMP (14 threads), and MPI (14 ranks), using the random setup with full parameters. The results are shown below:
+
+![Time scaling (random, full parameters)](scaling/time_scaling_full.png)
+
+- Small particle counts (N): Parallel runs can be slower than serial due to overhead.
+- Moderate to large N (N ≳ 100): Parallelization provides a speedup as expected.
+
+> **Note** This was performed by using an Intel Core i7-12700H (14 cores / 20 threads)
+
 
 ## Build and run
 
